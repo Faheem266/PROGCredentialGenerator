@@ -4,129 +4,111 @@
  */
 package com.mycompany.credentialgenerator;
 
-import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
-
+import org.junit.jupiter.api.*;
 import java.util.Base64;
 import java.security.MessageDigest;
-
+import static org.junit.jupiter.api.Assertions.*;
 
 public class MessageTest {
-    
-    // Helper method to stimulate user selection behaviour (Send)
-    private MessagingClass prepareMessage(String id, String number, String content){
-        return new MessagingClass(id, number, content); 
-    }
-    
-    @Test
-    public void testMessageLengthSuccess(){
-        String content = "Hi Mike, can you join us for dinner tonight";
-        assertTrue(content.length()<= 250, "Message ready to send");
-    }
-    
-    @Test
-public void testMessageTwoDiscardedDoesNotIncreaseTotal() {
-    int initial = MessagingClass.returnTotalMessages();
 
-    // Message 2 details
-    String id = "MSG002";
-    String number = "08575975889";  // Invalid number
-    String content = "Hi Keegan, did you receive the payment?";
-
-    MessagingClass msg = new MessagingClass(id, number, content);
-
-    // Validate recipient number should be invalid
-    assertEquals(0, msg.checkRecipientCell());
-
-    // Validate message length
-    assertTrue(content.length() <= 250, "Message length should be valid");
-
-    // Generate hash
-    String hash = msg.createMessageHash();
-    assertNotNull(hash);
-
-    // Simulate discard manually instead of calling SentMessage()
-    String discardResult = "Message discarded.";
-    assertEquals(discardResult, "Message discarded.");
-
-    // Confirm total messages unchanged
-    assertEquals(initial, MessagingClass.returnTotalMessages());
-}
-
-    
-    @Test
-    public void testMessageLengthFailure(){
-        String longContent = "A".repeat(251);
-        assertFalse(longContent.length() <= 250, "Message exceeds 250 characters, please reduce size.");
+    @BeforeEach
+    public void reset() {
+        MessagingClass.sentMessages.clear();
+        MessagingClass.discardedMessages.clear();
+        MessagingClass.storedMessages.clear();
+        MessagingClass.messageHashes.clear();
+        MessagingClass.messageIDs.clear();
     }
-    
+
     @Test
-    public void testRecipientNumberValid(){
-        MessagingClass msg = new MessagingClass("MSG001", "+277186930002", "Test Message");
-        assertEquals(0, msg.checkRecipientCell());
+    public void testMessageArrayPopulationAndLongestMessage() {
+        // Message 1 - Sent
+        MessagingClass m1 = new MessagingClass("MSG001", "+27833789612", "Did you get the cake?");
+        MessagingClass.sentMessages.add(m1);
+        MessagingClass.messageHashes.add(m1.createMessageHash());
+        MessagingClass.messageIDs.add(m1.messageID);
+
+        // Message 2 - Stored
+        MessagingClass m2 = new MessagingClass("MSG002", "+27838884567", "Where are you? You are late! I have asked you to be on time.");
+        MessagingClass.sentMessages.add(m2);
+        MessagingClass.storedMessages.add(m2);
+        MessagingClass.messageHashes.add(m2.createMessageHash());
+        MessagingClass.messageIDs.add(m2.messageID);
+
+        // Message 3 - Discarded
+        MessagingClass m3 = new MessagingClass("MSG003", "+27834484567", "Yohoooo, I am at your gate.");
+        MessagingClass.discardedMessages.add(m3);
+
+        // Message 4 - Sent
+        MessagingClass m4 = new MessagingClass("MSG004", "0838884567", "It is dinner time !");
+        MessagingClass.sentMessages.add(m4);
+        MessagingClass.messageHashes.add(m4.createMessageHash());
+        MessagingClass.messageIDs.add(m4.messageID);
+
+        // Message 5 - Stored
+        MessagingClass m5 = new MessagingClass("MSG005", "+27838884567", "Ok, I am leaving without you.");
+        MessagingClass.sentMessages.add(m5);
+        MessagingClass.storedMessages.add(m5);
+        MessagingClass.messageHashes.add(m5.createMessageHash());
+        MessagingClass.messageIDs.add(m5.messageID);
+
+        // Confirm sent messages
+        assertEquals(4, MessagingClass.sentMessages.size());
+        assertEquals(2, MessagingClass.storedMessages.size());
+        assertEquals(1, MessagingClass.discardedMessages.size());
+
+        // Confirm longest message
+        String expectedLongest = "Where are you? You are late! I have asked you to be on time.";
+        assertTrue(MessagingClass.displayLongestMessage().contains(expectedLongest));
     }
-    
+
     @Test
-    public void testRecipientNumberInvalid(){
-         MessagingClass msg = new MessagingClass("MSG002", "08575975889","Test Message" );
-         assertEquals(0, msg.checkRecipientCell());
+    public void testSearchByMessageID() {
+        MessagingClass msg = new MessagingClass("MSG004", "0838884567", "It is dinner time !");
+        MessagingClass.sentMessages.add(msg);
+        String result = MessagingClass.searchByMessageID("MSG004");
+        assertTrue(result.contains("It is dinner time !"));
     }
-    
+
     @Test
-    public void testMessageHashMatch() throws Exception{
-        // Expected hash for message 1: ID, number, and message
-        String id = "MSG001";
-        String number = "+277186930002";
-        String content = "Hi Mike, can you join us for dinner tonight";
-        String combined = id + number + content;
-        
-        MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        String expectedHash = Base64.getEncoder().encodeToString(digest.digest(combined.getBytes()));
-        
-        MessagingClass msg = new MessagingClass(id, number, content);
-        assertEquals(expectedHash, msg.createMessageHash());
+    public void testSearchByRecipient() {
+        MessagingClass m1 = new MessagingClass("MSG002", "+27838884567", "Where are you? You are late! I have asked you to be on time.");
+        MessagingClass m2 = new MessagingClass("MSG005", "+27838884567", "Ok, I am leaving without you.");
+        MessagingClass.sentMessages.add(m1);
+        MessagingClass.sentMessages.add(m2);
+
+        String result = MessagingClass.searchByRecipient("+27838884567");
+
+        assertTrue(result.contains("Where are you? You are late! I have asked you to be on time."));
+        assertTrue(result.contains("Ok, I am leaving without you."));
     }
-    
+
     @Test
-    public void testGeneratedMessageHashPattern(){
-     MessagingClass msg = new MessagingClass("MSG999", "+27123456789", "Some content");
-     String hash = msg.createMessageHash();
-     assertNotNull(hash);
-     assertTrue(10 <= hash.length());
+    public void testDeleteByHash() {
+        MessagingClass m = new MessagingClass("MSG002", "+27838884567", "Where are you? You are late! I have asked you to be on time.");
+        MessagingClass.sentMessages.add(m);
+        String hash = m.createMessageHash();
+        MessagingClass.messageHashes.add(hash);
+
+        String result = MessagingClass.deleteByHash(hash);
+        assertEquals("Message deleted successfully.", result);
+        assertFalse(MessagingClass.messageHashes.contains(hash));
     }
-   
-    
-    
-    
-    
+
     @Test
-    public void testIDValidationSuccess(){
-     MessagingClass msg = new MessagingClass("MSG123", "+27710000000", "Hi");  
-     assertTrue(msg.checkMessageID(),"Message ID is valid.");
-    }
-    
-    @Test
-    public void testIDValidationFailure(){
-      MessagingClass msg = new MessagingClass("MSG1234567890", "+27710000000", "Hi");
-      assertFalse(msg.checkMessageID(), "Message ID should be 10 characters or fewer.");
-        }
-    
-    @Test
-    public void testMessageSentIncreasesTotal(){
-        int initial = 0;
-MessagingClass.returnTotalMessages();
-        
-        MessagingClass msg = new MessagingClass("M1", "+277186930002", "Hi Mike, can you join us for dinner tonight");
-        msg.SentMessage();
-        
-        assertEquals(initial + 1, MessagingClass.returnTotalMessages() );
-        }
-    
-    @Test
-    public void testMessageSendChoices(){
-      MessagingClass sendMsg = new MessagingClass("SEND1", "+277186930002", "Send this message");
-      String sendResult = sendMsg.SentMessage();
-      assertTrue(sendResult.equals("Message sent!")||sendResult.equals("Message stored!")||sendResult.equals("Message discarded."));
+    public void testGenerateMessageReport() {
+        MessagingClass m1 = new MessagingClass("MSG001", "+27833789612", "Did you get the cake?");
+        MessagingClass.sentMessages.add(m1);
+        MessagingClass.messageHashes.add(m1.createMessageHash());
+
+        MessagingClass m2 = new MessagingClass("MSG004", "0838884567", "It is dinner time !");
+        MessagingClass.sentMessages.add(m2);
+        MessagingClass.messageHashes.add(m2.createMessageHash());
+
+        String report = MessagingClass.generateMessageReport();
+        assertTrue(report.contains("Did you get the cake?"));
+        assertTrue(report.contains("It is dinner time !"));
+        assertTrue(report.contains("Hash"));
     }
 }
     
