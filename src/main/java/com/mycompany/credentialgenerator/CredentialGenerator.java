@@ -1,13 +1,14 @@
 /*
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  */
-
 package com.mycompany.credentialgenerator;
 
 import static com.mycompany.credentialgenerator.LoginClass.*;
 
-import javax.swing.JOptionPane;
-import java.util.ArrayList;
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;       
+
 
 public class CredentialGenerator {
 
@@ -52,63 +53,96 @@ public class CredentialGenerator {
                 "Login failed. Incorrect username or password.",
                 "Login Error", JOptionPane.ERROR_MESSAGE);
         }
-        ArrayList<String> sentMessages = new ArrayList<>();
-            String[] options = {"Send Messages", "Show Recently Sent Messages", "Quit"};
-            boolean running = true;
+        
+        // GUI Menu Phase 
+        JFrame frame = new JFrame("Quickchat Menu");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(1000, 150);
+        
+        JPanel panel = new JPanel();
+        panel.setLayout(new FlowLayout());
+        
+        
+            String[] options = {"Send Messages", 
+                "Show Recently Sent Messages",
+                "Display Sender/Recipient",
+                "Longest Message",
+                "Search by Message ID",
+                "Search by Recipient",
+                "Delete by Hash",
+                "Message Report",
+                "Quit"};
+            // Add buttons and listeners
+        for (int i = 0; i < options.length; i++) {
+            String optionText = options[i];
+            int choice = i;
 
-            while (running) {
-                int choice = JOptionPane.showOptionDialog(
-                        null,
-                        "Welcome to Quickchat.\nPlease select an option:",
-                        "Quickchat Menu",
-                        JOptionPane.DEFAULT_OPTION,
-                        JOptionPane.INFORMATION_MESSAGE,
-                        null,
-                        options,
-                        options[0]
-                );
+            JButton button = new JButton(optionText);
+            panel.add(button);
 
+            button.addActionListener(e -> {
+
+                
                 switch (choice) {
-                    // Send Messages
-                    case 0: 
-                        String msgID = JOptionPane.showInputDialog(null, "Enter message ID:");
-                        String recipient = JOptionPane.showInputDialog("Enter recipient number (+27...)");
-                        String content = JOptionPane.showInputDialog("Enter your message:");
+                case 0: // Send Messages
+                    MessagingClass.startMessagingSession();
+                    break;
+
+                case 1: // Show Recently Sent Messages
+                    JOptionPane.showMessageDialog(frame, MessagingClass.printMessages());
+                    break;
                         
-                        MessagingClass message = new MessagingClass(msgID, recipient, content);
-                        
-                        if(!message.checkMessageID()){
-                            JOptionPane.showMessageDialog(null, "Message ID must be 10 characters or fewer.");
-                        } else if(message.checkRecipientCell()== 0){
-                            JOptionPane.showMessageDialog(null, "Invalid number. Must start with +27 and have 9 digits.");
-                        } else{
-                            String result = message.SentMessage();
-                            JOptionPane.showMessageDialog(null, result);
-                        }
-                        break;
-                        
-                        //Show Messages
-                    case 1:
-                        String allMessages = MessagingClass.printMessages();
-                        JOptionPane.showMessageDialog(null, allMessages, "Sent Messages", JOptionPane.INFORMATION_MESSAGE);
-                        break;
-                        
-                        // Quit
+
+                    // Display Sender/Recipient
                     case 2:
-                    case JOptionPane.CLOSED_OPTION:
-                        running = false;
-                                break;
-
+                    JOptionPane.showMessageDialog(frame, MessagingClass.displaySenderAndRecipients());
+                     break;
+                       
+                     // Longest Message
+                    case 3:
+                    JOptionPane.showMessageDialog(frame, MessagingClass.displayLongestMessage());
+                    break;
+                    
+                    // Search by Messsage ID
+                    case 4:
+                    String searchID = JOptionPane.showInputDialog("Enter message ID to search: ");
+                    JOptionPane.showMessageDialog(frame, MessagingClass.searchByMessageID(searchID));
+                    break;
+                    
+                    // Search by Recipient
+                    case 5:
+                    String searchRecipient = JOptionPane.showInputDialog("Enter recipient number to search (+27....)");
+                    JOptionPane.showMessageDialog(frame, MessagingClass.searchByRecipient(searchRecipient));
+                    break;
+                    
+                    // Delete by Hash
+                    case 6:
+                    String hashToDelete = JOptionPane.showInputDialog("Enter message hash to delete");
+                    JOptionPane.showMessageDialog(frame, MessagingClass.deleteByHash(hashToDelete));
+                    break;
+                    
+                    // Message report
+                    case 7:
+                    JOptionPane.showMessageDialog(frame, MessagingClass.generateMessageReport());
+                    break;
+                    
+                    // Quit
+                    case 8:
+                    MessagingClass.saveMessagesToJSON("messages.json");   
+                    JOptionPane.showMessageDialog(frame, "Goodbye!");
+                    System.exit(0);
+                    break;
                 }
+                });
             }
-            
-   // Save all messages to JSON before quitting
-        MessagingClass.saveMessagesToJSON("messages.json");
-
-        JOptionPane.showMessageDialog(null, "Goodbye!");
+         frame.add(panel);
+        frame.setVisible(true);
 
 }
 }
+
+
+
 
 
 
